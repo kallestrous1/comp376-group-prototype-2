@@ -75,6 +75,18 @@ public class AudioManager : MonoBehaviour
 	public void PlayMusic(AudioClip clip)
 	{
 		CancelMusicFade();
+		musicFade = StartCoroutine(PlayMusicWhenLoaded(clip));
+	}
+
+	// WebGL hangs if a clip is played before the browser has finished decoding it.
+	IEnumerator PlayMusicWhenLoaded(AudioClip clip)
+	{
+		if (clip.loadState == AudioDataLoadState.Unloaded)
+			clip.LoadAudioData();
+		while (clip.loadState == AudioDataLoadState.Loading)
+			yield return null;
+
+		musicFade = null;
 		MusicSource.clip = clip;
 		MusicSource.volume = musicVolume;
 		MusicSource.Play();
