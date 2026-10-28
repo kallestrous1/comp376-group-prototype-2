@@ -21,13 +21,13 @@ public class SpriteLightController : LightController
 
         if (directionType == DirectionType.Horizontal)
         {
-            newPosition.x += direction * translationSpeed;
-            newPosition.x = Mathf.Clamp(newPosition.x, minPosition, maxPosition);
+            newPosition.y += direction * translationSpeed;
+            newPosition.y = Mathf.Clamp(newPosition.y, minPosition, maxPosition);
         }
         else
         {
-            newPosition.y += direction * translationSpeed;
-            newPosition.y = Mathf.Clamp(newPosition.y, minPosition, maxPosition);
+            newPosition.x += direction * translationSpeed;
+            newPosition.x = Mathf.Clamp(newPosition.x, minPosition, maxPosition);
         }
 
         transform.position = newPosition;
