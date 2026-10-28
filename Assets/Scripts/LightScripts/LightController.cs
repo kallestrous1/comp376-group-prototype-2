@@ -4,9 +4,16 @@ using UnityEngine.Rendering.Universal;
 public abstract class LightController : MonoBehaviour
 {
     protected Light2D lightSource;
-    [SerializeField] protected bool isSelected = false;
-    public bool IsSelected { get; set; }
+[SerializeField] protected bool isSelected = false;
+[SerializeField] private bool canBeSelected = true;
 
+public bool CanBeSelected => canBeSelected;
+
+public bool IsSelected
+{
+    get => isSelected;
+    set => isSelected = value;
+}
     protected virtual void Start()
     {
         if (LightInput.Instance != null)
