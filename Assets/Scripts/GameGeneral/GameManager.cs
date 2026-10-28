@@ -49,9 +49,11 @@ public class GameManager : MonoBehaviour
 
     #region Public API
 
-    /// <summary>Called from the main menu: loads the base scene and the first level.</summary>
-    public void NewGame()
+    /// <summary>Called from the main menu: loads the base scene and the chosen level.</summary>
+    public void NewGame(string levelScene)
     {
+        if (!string.IsNullOrEmpty(levelScene))
+            startScene = levelScene;
         StartCoroutine(NewGameRoutine());
     }
 

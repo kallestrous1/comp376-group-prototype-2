@@ -4,6 +4,7 @@ using UnityEngine;
 public class NewGameButton : BasicButton
 {
     public AudioClip startGameSound;
+    public string levelScene = "Level1";
     private bool clicked = false;
 
     public void StartNewGame()
@@ -22,6 +23,6 @@ public class NewGameButton : BasicButton
     {
         // Give the click sound a moment to start before the scene load hitches the frame.
         yield return new WaitForSeconds(0.05f);
-        GameManager.manager.NewGame();
+        GameManager.manager.NewGame(levelScene);
     }
 }
