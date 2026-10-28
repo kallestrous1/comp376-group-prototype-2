@@ -25,6 +25,8 @@ public class GameManager : MonoBehaviour
 
     private GameObject player;
 
+    public Vector2 StartPosition => startPosition;
+
     private void Awake()
     {
         if (manager != null && manager != this)
@@ -58,9 +60,9 @@ public class GameManager : MonoBehaviour
     }
 
     /// <summary>Called by scene doors: loads newScene, then unloads previousScene.</summary>
-    public void MoveToScene(string newScene, string previousScene, bool upBoost)
+    public void MoveToScene(string newScene, string previousScene, bool upBoost, bool unloadBaseScene = false)
     {
-        StartCoroutine(SceneTransition(newScene, previousScene, upBoost, null));
+        StartCoroutine(SceneTransition(newScene, previousScene, upBoost, null, unloadBaseScene));
     }
 
     /// <summary>Called when the player dies: back to the start of the game.</summary>
@@ -95,7 +97,7 @@ public class GameManager : MonoBehaviour
         GameStateManager.instance.ChangeState(GameState.Play);
     }
 
-    private IEnumerator SceneTransition(string newScene, string previousScene, bool upBoost, Vector2? placeAt)
+    private IEnumerator SceneTransition(string newScene, string previousScene, bool upBoost, Vector2? placeAt, bool unloadBaseScene = false)
     {
         GameStateManager.instance.ChangeState(GameState.movingScene);
         ShowLoading(true);
@@ -126,8 +128,14 @@ public class GameManager : MonoBehaviour
             yield return Unload(previousScene);
         }
 
+        if (unloadBaseScene)
+        {
+            Time.timeScale = 1f;
+            yield return Unload(baseScene);
+        }
+
         ShowLoading(false);
-        GameStateManager.instance.ChangeState(GameState.Play);
+        GameStateManager.instance.ChangeState(unloadBaseScene ? GameState.MainMenu : GameState.Play);
     }
 
     private IEnumerator ReturnToMenuRoutine()
