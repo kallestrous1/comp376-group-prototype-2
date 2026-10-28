@@ -39,10 +39,9 @@ public bool IsSelected
 
     private void ProcessInput(float direction)
     {
-        if (lightSource != null)
-        {
-            MoveLight(direction);
-        }
+        // Only the player's current selection (0 or 1 light) receives scroll control.
+        if (!isSelected || lightSource == null) return;
+        MoveLight(direction);
     }
 
     protected abstract void MoveLight(float direction);

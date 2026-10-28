@@ -1,6 +1,6 @@
 using UnityEngine;
 
-public class PointLightController : LightController
+public class SpotLightController : LightController
 {
     [SerializeField] private float rotationSpeed = 10f;
     [SerializeField] private float minRotation = -45f;

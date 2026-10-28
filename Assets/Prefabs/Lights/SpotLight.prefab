@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 5380597421252658330}
   - component: {fileID: 7824753557419804029}
   - component: {fileID: 2522392109264885676}
+  - component: {fileID: 199991902539169974}
   m_Layer: 0
   m_Name: SpotLight
   m_TagString: Untagged
@@ -190,6 +191,21 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::SpotLightController
   isSelected: 0
+  canBeSelected: 1
   rotationSpeed: 10
   minRotation: -45
   maxRotation: 45
+--- !u!114 &199991902539169974
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 5062035636749012991}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b80c1d03fd76af7498ec451d9db21696, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LightTriggerDamage
+  damage: 1
+  damageInterval: 0.1

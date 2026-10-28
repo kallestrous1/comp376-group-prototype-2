@@ -25,7 +25,13 @@ public class LevelGoal : MonoBehaviour
 
         used = true;
         if (!returnToMenuOnCompletion)
+        {
             other.transform.position = GameManager.manager.StartPosition;
+            PlayerHealth health = other.GetComponent<PlayerHealth>();
+            if (health != null)
+                health.ResetHealth();
+            GameManager.manager.SetRespawnScene(nextLevelName);
+        }
         GameManager.manager.MoveToScene(nextLevelName, currentLevel, false, returnToMenuOnCompletion);
     }
 }

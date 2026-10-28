@@ -36,7 +36,6 @@ public class GameManager : MonoBehaviour
         }
 
         manager = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     // SuperScene (this manager) is always the first scene; bring the menu up on top of it.
@@ -65,16 +64,25 @@ public class GameManager : MonoBehaviour
         StartCoroutine(SceneTransition(newScene, previousScene, upBoost, null, unloadBaseScene));
     }
 
-    /// <summary>Called when the player dies: back to the start of the game.</summary>
+    /// <summary>Death reloads this scene and places the player at the start.</summary>
+    public void SetRespawnScene(string sceneName)
+    {
+        if (!string.IsNullOrEmpty(sceneName))
+            startScene = sceneName;
+    }
+
+    /// <summary>Called when the player dies: back to the start of the current level.</summary>
     public void RespawnPlayer()
     {
         string activeScene = SceneManager.GetActiveScene().name;
-        StartCoroutine(SceneTransition(startScene, activeScene, false, startPosition));
+        StartCoroutine(SceneTransition(startScene, activeScene, false, startPosition, false, true));
     }
 
+    /// <summary>Pause menu: load the menu on top of SuperScene and unload the level.</summary>
     public void ReturnToMenu()
     {
-        StartCoroutine(ReturnToMenuRoutine());
+        Time.timeScale = 1f;
+        MoveToScene(menuScene, SceneManager.GetActiveScene().name, false, true);
     }
 
     #endregion
@@ -97,7 +105,7 @@ public class GameManager : MonoBehaviour
         GameStateManager.instance.ChangeState(GameState.Play);
     }
 
-    private IEnumerator SceneTransition(string newScene, string previousScene, bool upBoost, Vector2? placeAt, bool unloadBaseScene = false)
+    private IEnumerator SceneTransition(string newScene, string previousScene, bool upBoost, Vector2? placeAt, bool unloadBaseScene = false, bool reloadIfSame = false)
     {
         GameStateManager.instance.ChangeState(GameState.movingScene);
         ShowLoading(true);
@@ -105,8 +113,15 @@ public class GameManager : MonoBehaviour
         Rigidbody2D body = Player.GetComponent<Rigidbody2D>();
         body.bodyType = RigidbodyType2D.Static;
 
-        if (newScene != previousScene)
+        bool sameScene = newScene == previousScene;
+        if (!sameScene)
         {
+            yield return LoadAdditive(newScene, true);
+            yield return null;
+        }
+        else if (reloadIfSame)
+        {
+            yield return Unload(newScene);
             yield return LoadAdditive(newScene, true);
             yield return null;
         }
@@ -123,7 +138,7 @@ public class GameManager : MonoBehaviour
             Player.GetComponent<PlayerController>().Jump();
         }
 
-        if (newScene != previousScene)
+        if (!sameScene)
         {
             yield return Unload(previousScene);
         }
@@ -136,28 +151,6 @@ public class GameManager : MonoBehaviour
 
         ShowLoading(false);
         GameStateManager.instance.ChangeState(unloadBaseScene ? GameState.MainMenu : GameState.Play);
-    }
-
-    private IEnumerator ReturnToMenuRoutine()
-    {
-        Time.timeScale = 1f;
-        GameStateManager.instance.ChangeState(GameState.movingScene);
-        ShowLoading(true);
-
-        yield return LoadAdditive(menuScene, true);
-
-        // Unload everything except this manager's scene and the menu.
-        for (int i = SceneManager.sceneCount - 1; i >= 0; i--)
-        {
-            Scene scene = SceneManager.GetSceneAt(i);
-            if (scene != gameObject.scene && scene.name != menuScene)
-            {
-                yield return Unload(scene.name);
-            }
-        }
-
-        ShowLoading(false);
-        GameStateManager.instance.ChangeState(GameState.MainMenu);
     }
 
     private IEnumerator LoadAdditive(string sceneName, bool makeActive = false)

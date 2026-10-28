@@ -22,7 +22,6 @@ public class InputManager : MonoBehaviour
         }
 
         Instance = this;
-        DontDestroyOnLoad(gameObject);
 
         controls = new GameplayControls();
 

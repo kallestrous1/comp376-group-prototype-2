@@ -6,7 +6,7 @@ public enum DirectionType
     Vertical
 }
 
-public class SpriteLightController : LightController
+public class DirectionLightController : LightController
 {
     [SerializeField] private float translationSpeed = 0.5f;
     [SerializeField] private DirectionType directionType = DirectionType.Horizontal;

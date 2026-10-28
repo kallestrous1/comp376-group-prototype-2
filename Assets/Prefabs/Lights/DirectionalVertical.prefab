@@ -95,6 +95,7 @@ GameObject:
   - component: {fileID: 2136147050872372684}
   - component: {fileID: 1232286960276526424}
   - component: {fileID: 1532342483205203623}
+  - component: {fileID: 2028179605082527135}
   m_Layer: 0
   m_Name: DirectionalVertical
   m_TagString: Untagged
@@ -190,7 +191,22 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DirectionLightController
   isSelected: 0
+  canBeSelected: 1
   translationSpeed: 0.5
   directionType: 1
   minPosition: -5
   maxPosition: 5
+--- !u!114 &2028179605082527135
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 8720234631720700324}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b80c1d03fd76af7498ec451d9db21696, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::LightTriggerDamage
+  damage: 1
+  damageInterval: 0.1

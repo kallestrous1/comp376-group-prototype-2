@@ -23,7 +23,6 @@ public class GameStateManager : MonoBehaviour
         }
 
         instance = this;
-        DontDestroyOnLoad(gameObject);
     }
 
     public void ChangeState(GameState newState)

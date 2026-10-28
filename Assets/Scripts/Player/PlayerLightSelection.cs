@@ -4,18 +4,13 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// GDD: player-to-mouse LOS ray and exclusive light selection.
-/// Uses Diana's LightInput click event and LightController.IsSelected property.
-/// No click colliders are required on her existing three light prefabs.
-/// Add to the scene's existing "Light Input" GameObject.
+/// Attach to the player prefab. Holds 0 or 1 selected light and selects it from the mouse
+/// using the scene's Light Input click. Scroll control follows LightController.IsSelected.
+/// Light prefabs do not need a click collider.
 /// </summary>
 [DisallowMultipleComponent]
-public class KDLightSelector2D : MonoBehaviour
+public class PlayerLightSelection : MonoBehaviour
 {
-    [Header("References (player is auto-found by Player tag)")]
-    [SerializeField] private Transform playerOrigin;
-    [SerializeField] private Camera gameCamera;
-
     [Header("Line of sight")]
     [Tooltip("World layers containing walls/platforms. Other lights are handled separately; triggers are ignored.")]
     [SerializeField] private LayerMask blockingLayers = ~0;
@@ -24,6 +19,7 @@ public class KDLightSelector2D : MonoBehaviour
     [Min(0.05f)] [SerializeField] private float minimumLightTargetRadius = 0.4f;
 
     [Header("Feedback")]
+    [SerializeField] private Camera gameCamera;
     [SerializeField] private Color hoverColor = new Color(1f, 0.8f, 0.2f, 1f);
     [SerializeField] private Color selectedColor = new Color(0.32f, 0.95f, 0.5f, 1f);
     [SerializeField] private Color rayColor = new Color(0.65f, 0.85f, 1f, 0.45f);
@@ -31,20 +27,23 @@ public class KDLightSelector2D : MonoBehaviour
     [SerializeField] private int raySortingOrder = 100;
 
     private LightInput subscribedInput;
-    private LightController selectedLight;
     private LightController hoveredLight;
     private LineRenderer aimRay;
     private Material rayMaterial;
     private readonly Dictionary<SpriteRenderer, Color> originalTints = new Dictionary<SpriteRenderer, Color>();
-    private bool warnedAboutPlayer;
+    private bool warnedAboutInput;
 
-    public LightController SelectedLight => selectedLight;
+    public LightController SelectedLight { get; private set; }
 
     private void Awake()
     {
         if (gameCamera == null) gameCamera = Camera.main;
-        FindPlayer();
         CreateAimRay();
+    }
+
+    private void Start()
+    {
+        SetSelectedLight(null);
     }
 
     private void OnEnable() => TrySubscribeToInput();
@@ -52,7 +51,6 @@ public class KDLightSelector2D : MonoBehaviour
     private void Update()
     {
         TrySubscribeToInput();
-        if (playerOrigin == null) FindPlayer();
         if (gameCamera == null) gameCamera = Camera.main;
         EvaluateAim();
     }
@@ -65,60 +63,68 @@ public class KDLightSelector2D : MonoBehaviour
             subscribedInput.OnLeftClickActionPerformed -= HandleClick;
         subscribedInput = target;
         if (subscribedInput != null)
+        {
             subscribedInput.OnLeftClickActionPerformed += HandleClick;
-    }
-
-    private void FindPlayer()
-    {
-        GameObject taggedPlayer = GameObject.FindGameObjectWithTag("Player");
-        if (taggedPlayer != null)
-        {
-            playerOrigin = taggedPlayer.transform;
-            warnedAboutPlayer = false;
+            warnedAboutInput = false;
         }
-        else if (!warnedAboutPlayer)
+        else if (!warnedAboutInput)
         {
-            Debug.LogWarning("KDLightSelector2D: no GameObject tagged Player. Assign Player Origin in the Inspector.", this);
-            warnedAboutPlayer = true;
+            Debug.LogWarning("PlayerLightSelection: this scene has no Light Input object, so clicks cannot select lights.", this);
+            warnedAboutInput = true;
         }
     }
 
     private void HandleClick()
     {
-        if (EventSystem.current != null && EventSystem.current.IsPointerOverGameObject()) return;
-        EvaluateAim(); // Read pointer at click time, not a stale previous-frame hover.
-        if (hoveredLight != null && hoveredLight.CanBeSelected)
-            SelectLight(hoveredLight);
+        bool pointerOverUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+        if (!pointerOverUi)
+            EvaluateAim();
+
+        if (!pointerOverUi && hoveredLight != null && hoveredLight.CanBeSelected)
+        {
+            if (hoveredLight == SelectedLight)
+                ClearSelection();
+            else
+                SelectLight(hoveredLight);
+            return;
+        }
+
+        ClearSelection();
     }
 
     public void SelectLight(LightController next)
     {
+        LightController previous = SelectedLight;
+        SetSelectedLight(next);
+        RefreshTint(previous);
+        RefreshTint(SelectedLight);
+        RefreshTint(hoveredLight);
+    }
+
+    public void SetSelectedLight(LightController next)
+    {
         if (next != null && !next.CanBeSelected) return;
-        // Enforce only one selection even if another light was selected in the prefab.
+
         foreach (LightController light in FindObjectsByType<LightController>(FindObjectsSortMode.None))
             light.IsSelected = (light == next);
 
-        LightController previous = selectedLight;
-        selectedLight = next;
-        RefreshTint(previous);
-        RefreshTint(selectedLight);
-        RefreshTint(hoveredLight);
+        SelectedLight = next;
     }
 
     public void ClearSelection() => SelectLight(null);
 
     private void EvaluateAim()
     {
-        if (playerOrigin == null || gameCamera == null || Mouse.current == null)
+        if (gameCamera == null || Mouse.current == null)
         {
             SetHovered(null);
             if (aimRay != null) aimRay.enabled = false;
             return;
         }
 
-        Vector2 origin = playerOrigin.position;
+        Vector2 origin = transform.position;
         Ray screenRay = gameCamera.ScreenPointToRay(Mouse.current.position.ReadValue());
-        Plane plane = new Plane(Vector3.forward, playerOrigin.position);
+        Plane plane = new Plane(Vector3.forward, transform.position);
         if (!plane.Raycast(screenRay, out float distanceAlongRay))
         {
             SetHovered(null);
@@ -140,19 +146,15 @@ public class KDLightSelector2D : MonoBehaviour
             Vector2 dir = vector.normalized;
             float firstHitDistance = totalDistance;
 
-            // The nearest real, non-trigger wall stops the line. Ignore the player's collider.
             foreach (RaycastHit2D hit in Physics2D.RaycastAll(origin, dir, totalDistance, blockingLayers))
             {
                 if (hit.collider == null || hit.collider.isTrigger) continue;
-                if (hit.collider.transform.IsChildOf(playerOrigin.root)) continue;
-                // Light fixtures with colliders must not be mistaken for walls.
+                if (hit.collider.transform.IsChildOf(transform.root)) continue;
                 if (hit.collider.GetComponentInParent<LightController>() != null) continue;
                 firstHitDistance = hit.distance;
                 break;
             }
 
-            // Existing light prefabs have sprites but NO Collider2D. Intersect fixture
-            // bounds with the ray to detect and stop at light targets nonetheless.
             float closestLightDistance = firstHitDistance;
             float closestHoveredDistance = float.PositiveInfinity;
             foreach (LightController light in FindObjectsByType<LightController>(FindObjectsSortMode.None))
@@ -162,7 +164,6 @@ public class KDLightSelector2D : MonoBehaviour
                 Vector2 center = sprite != null ? (Vector2)sprite.bounds.center : (Vector2)light.transform.position;
                 float radius = GetFixtureRadius(sprite);
 
-                // A click must be physically over the light fixture (or near its center).
                 bool underPointer = (pointer - center).sqrMagnitude <= radius * radius;
                 if (underPointer)
                 {
@@ -190,8 +191,6 @@ public class KDLightSelector2D : MonoBehaviour
             float stopDistance = firstLightHit != null ? closestLightDistance : firstHitDistance;
             rayEnd = origin + dir * stopDistance;
 
-            // Hover/select only if the target is the FIRST light reached by the ray;
-            // an intervening wall or another fixture prevents selection.
             if (hoveredCandidate != firstLightHit || firstLightHit == null || !firstLightHit.CanBeSelected)
                 hoveredCandidate = null;
         }
@@ -200,8 +199,8 @@ public class KDLightSelector2D : MonoBehaviour
         if (aimRay != null)
         {
             aimRay.enabled = true;
-            aimRay.SetPosition(0, new Vector3(origin.x, origin.y, playerOrigin.position.z));
-            aimRay.SetPosition(1, new Vector3(rayEnd.x, rayEnd.y, playerOrigin.position.z));
+            aimRay.SetPosition(0, new Vector3(origin.x, origin.y, transform.position.z));
+            aimRay.SetPosition(1, new Vector3(rayEnd.x, rayEnd.y, transform.position.z));
         }
     }
 
@@ -209,7 +208,6 @@ public class KDLightSelector2D : MonoBehaviour
     {
         if (sprite == null) return minimumLightTargetRadius;
         Vector3 extent = sprite.bounds.extents;
-        // A forgiving target radius around the light fixture itself (not its beam).
         return Mathf.Max(minimumLightTargetRadius, Mathf.Max(extent.x, extent.y));
     }
 
@@ -238,7 +236,7 @@ public class KDLightSelector2D : MonoBehaviour
             original = sprite.color;
             originalTints.Add(sprite, original);
         }
-        Color tint = light == selectedLight ? selectedColor : (light == hoveredLight ? hoverColor : original);
+        Color tint = light == SelectedLight ? selectedColor : (light == hoveredLight ? hoverColor : original);
         tint.a = original.a;
         sprite.color = tint;
     }
@@ -249,10 +247,10 @@ public class KDLightSelector2D : MonoBehaviour
         if (shader == null) shader = Shader.Find("Universal Render Pipeline/Unlit");
         if (shader == null)
         {
-            Debug.LogWarning("KDLightSelector2D: could not find a shader for the LOS line; light selection will still work.", this);
+            Debug.LogWarning("PlayerLightSelection: could not find a shader for the LOS line; light selection will still work.", this);
             return;
         }
-        GameObject visual = new GameObject("KD Player-to-Mouse LOS Ray");
+        GameObject visual = new GameObject("Player-to-Mouse LOS Ray");
         visual.transform.SetParent(transform, false);
         aimRay = visual.AddComponent<LineRenderer>();
         rayMaterial = new Material(shader);
@@ -275,8 +273,7 @@ public class KDLightSelector2D : MonoBehaviour
         foreach (var entry in originalTints)
             if (entry.Key != null) entry.Key.color = entry.Value;
         originalTints.Clear();
-        if (selectedLight != null) selectedLight.IsSelected = false;
-        selectedLight = null;
+        SetSelectedLight(null);
         hoveredLight = null;
     }
 
