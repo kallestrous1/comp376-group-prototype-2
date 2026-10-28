@@ -6,21 +6,30 @@ public enum DirectionType
     Vertical
 }
 
-public class DirectionLightController : LightController
+public class SpriteLightController : LightController
 {
     [SerializeField] private float translationSpeed = 0.5f;
     [SerializeField] private DirectionType directionType = DirectionType.Horizontal;
+    [SerializeField] private float minPosition = -5f;
+    [SerializeField] private float maxPosition = 5f;
 
     protected override void MoveLight(float direction)
     {
         if (!isSelected) return;
+
+        Vector3 newPosition = transform.position;
+
         if (directionType == DirectionType.Horizontal)
         {
-            transform.Translate(direction * translationSpeed, 0, 0, Space.World);
+            newPosition.x += direction * translationSpeed;
+            newPosition.x = Mathf.Clamp(newPosition.x, minPosition, maxPosition);
         }
         else
         {
-            transform.Translate(0, direction * translationSpeed, 0, Space.World);
+            newPosition.y += direction * translationSpeed;
+            newPosition.y = Mathf.Clamp(newPosition.y, minPosition, maxPosition);
         }
+
+        transform.position = newPosition;
     }
 }
