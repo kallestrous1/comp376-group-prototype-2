@@ -5,6 +5,7 @@ public abstract class LightController : MonoBehaviour
 {
     protected Light2D lightSource;
     [SerializeField] protected bool isSelected = false;
+    public bool IsSelected { get; set; }
 
     protected virtual void Start()
     {
