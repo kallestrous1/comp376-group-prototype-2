@@ -191,7 +191,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DirectionLightController
   isSelected: 0
-  canBeSelected: 1
+  canBeSelected: 0
   translationSpeed: 0.5
   directionType: 0
   minPosition: -5
