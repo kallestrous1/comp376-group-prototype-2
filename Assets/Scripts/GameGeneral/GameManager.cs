@@ -138,6 +138,12 @@ public class GameManager : MonoBehaviour
             Player.GetComponent<PlayerController>().Jump();
         }
 
+        if (!unloadBaseScene && !sameScene)
+        {
+            PlayerHealth health = Player.GetComponent<PlayerHealth>();
+            if (health != null) health.ResetHealth();
+        }
+
         if (!sameScene)
         {
             yield return Unload(previousScene);

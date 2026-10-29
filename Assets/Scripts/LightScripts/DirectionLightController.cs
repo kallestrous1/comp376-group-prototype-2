@@ -15,21 +15,6 @@ public class DirectionLightController : LightController
 
     protected override void MoveLight(float direction)
     {
-        if (!isSelected) return;
-
-        Vector3 newPosition = transform.position;
-
-        if (directionType == DirectionType.Horizontal)
-        {
-            newPosition.y += direction * translationSpeed;
-            newPosition.y = Mathf.Clamp(newPosition.y, minPosition, maxPosition);
-        }
-        else
-        {
-            newPosition.x += direction * translationSpeed;
-            newPosition.x = Mathf.Clamp(newPosition.x, minPosition, maxPosition);
-        }
-
-        transform.position = newPosition;
+        // Wide level lights stay fixed. Only the circular spotlight rotates.
     }
 }

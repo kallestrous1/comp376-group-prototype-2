@@ -28,6 +28,7 @@ public class PlayerLightSelection : MonoBehaviour
 
     private LightInput subscribedInput;
     private LightController hoveredLight;
+    private bool beamActive;
     private LineRenderer aimRay;
     private Material rayMaterial;
     private readonly Dictionary<SpriteRenderer, Color> originalTints = new Dictionary<SpriteRenderer, Color>();
@@ -39,6 +40,7 @@ public class PlayerLightSelection : MonoBehaviour
     {
         if (gameCamera == null) gameCamera = Camera.main;
         CreateAimRay();
+        if (aimRay != null) aimRay.enabled = false;
     }
 
     private void Start()
@@ -52,6 +54,28 @@ public class PlayerLightSelection : MonoBehaviour
     {
         TrySubscribeToInput();
         if (gameCamera == null) gameCamera = Camera.main;
+
+        if (Mouse.current != null && Mouse.current.rightButton.wasPressedThisFrame)
+        {
+            bool overUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
+            if (!overUi)
+            {
+                beamActive = !beamActive;
+                if (!beamActive)
+                {
+                    ClearSelection();
+                    SetHovered(null);
+                    if (aimRay != null) aimRay.enabled = false;
+                }
+            }
+        }
+
+        if (!beamActive)
+        {
+            if (aimRay != null) aimRay.enabled = false;
+            return;
+        }
+
         EvaluateAim();
     }
 
@@ -76,6 +100,7 @@ public class PlayerLightSelection : MonoBehaviour
 
     private void HandleClick()
     {
+        if (!beamActive) return;
         bool pointerOverUi = EventSystem.current != null && EventSystem.current.IsPointerOverGameObject();
         if (!pointerOverUi)
             EvaluateAim();
